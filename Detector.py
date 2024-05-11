@@ -45,8 +45,8 @@ def apply_LDA():
         X_train_lda = lda.transform(hog_matrix)
 
         # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
-        gnbs[i] = GaussianNB()
-        gnbs[i].fit(X_train_lda, class_labels[i])
+        gnbs[i-1] = GaussianNB()
+        gnbs[i-1].fit(X_train_lda, class_labels[i])
 
         #dan datos que hay que borrar
         n_classes = len(np.unique(class_labels[i]))
@@ -80,7 +80,7 @@ def hog(image, number):
     class_labels[number].append(number)
 
 
-def expand_detected_regions(regions, gray_image, original_image, datos, expand_factor=1.3):
+def expand_detected_regions(regions, gray_image, original_image, datos, expand_factor=1.2):
     expanded_regions = []
     for region in regions:
         x, y, w, h = cv2.boundingRect(region)
@@ -180,7 +180,7 @@ def resize_regions(image, target_size=(32, 32)):
 def mser_func(original_image, min, max, datos):
     gray_image = enhance_contrast(original_image)
 
-    mser = cv2.MSER_create(delta=5, min_area=min, max_area=max)
+    mser = cv2.MSER_create(delta=3, min_area=min, max_area=max)
 
     regions, _ = mser.detectRegions(gray_image)
     expanded_regions = expand_detected_regions(regions, gray_image, original_image, datos)
@@ -191,7 +191,7 @@ def apply_mser(image_paths, gt_txt):
     print(image_paths)
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths[:100]:
+    for image_path in image_paths:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:

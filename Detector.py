@@ -2,6 +2,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import LabelBinarizer
 
@@ -24,49 +26,62 @@ nosenal = []
 class_features = [[], [], [], [], [], [], []]
 class_labels = [[], [], [], [], [], [], []]
 
-gnbs = [[], [], [], [], [], []]
+gnbs =[]
 
-def apply_LDA():
-    i=1
-    for hog_features in class_features[1:]:
+
+
+def create_class_features():
+    for i, hog_features in enumerate(class_features[1:], 1):
         hog_features.extend(class_features[0])
         class_labels[i].extend(class_labels[0])
-        i=i+1
-    i=1
-    for hog_features in class_features[1:]:
-        hog_matrix = np.array(hog_features)
+
+def apply_LDA(class_features, class_labels):
+    #for i, hog_features in enumerate(class_features[1:], 1):
+        hog_matrix = np.array(class_features)
         n_muestras, n_features = hog_matrix.shape
 
+
+        print("Número de características:", n_features)
+        print("Número de clases:", n_muestras)
+
         lda = LDA()
-        lda.fit(hog_matrix, class_labels[i])
+        lda.fit(hog_matrix, class_labels)
 
-
-         # Reducir la dimensionalidad de los datos de entrenamiento con LDA
+        # Reducir la dimensionalidad de los datos de entrenamiento con LDA
         X_train_lda = lda.transform(hog_matrix)
 
+        print(X_train_lda.shape)
         # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
-        gnbs[i-1] = GaussianNB()
-        gnbs[i-1].fit(X_train_lda, class_labels[i])
+        gnb = GaussianNB()
 
-        #dan datos que hay que borrar
-        n_classes = len(np.unique(class_labels[i]))
-        print("Número de características:", n_features)
-        print("Número de clases:", n_classes)
-        i=i+1
+        gnb.fit(X_train_lda, class_labels)
+        gnbs.append(gnb)
 
-def multiclass_classifier(sample):
+
+
+
+def multiclass_classifier(sample,y_val):
+
+    hog_matrix = np.array(sample)
+
+    lda = LDA()
+    lda.fit(hog_matrix, y_val)
+    X_train_lda = lda.transform(hog_matrix)
+
     # Obtener las probabilidades de pertenecer a cada clase para cada clasificador binario
     probabilities = []
-    for gnb in gnbs:
-        probabilities.append(gnb.predict_proba(sample.reshape(1, -1))[0])
 
-    # Obtener la clase con la mayor probabilidad para cada clasificador binario
-    predicted_classes = [np.argmax(prob) for prob in probabilities]
+    #for gnb in gnbs:
+    #    probabilities.append(gnb.predict_proba(X_train_lda)[0])
 
-    # Obtener las etiquetas de clase correspondientes
-    predicted_labels = LabelBinarizer.inverse_transform(np.array(predicted_classes).reshape(1, -1))
+    probabilities = gnbs[0].predict_proba(X_train_lda)
 
-    return predicted_labels[0]
+# Obtener la clase con la mayor probabilidad para cada muestra
+    predicted_classes = np.argmax(probabilities, axis=1)
+
+    print(predicted_classes)
+
+    return predicted_classes
 
 def hog(image, number):
     win_size = (32, 32)
@@ -191,7 +206,7 @@ def apply_mser(image_paths, gt_txt):
     print(image_paths)
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths:
+    for image_path in image_paths[:10]:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
@@ -209,7 +224,31 @@ def apply_mser(image_paths, gt_txt):
 
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
-    apply_LDA()
+    create_class_features()
+
+    feature_matrix = np.array(class_features[1])
+    class_matrix = np.array(class_labels[1])
+
+    X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2,
+                                                      stratify=class_matrix)
+
+    # Aplicar LDA y entrenar clasificadores binarios
+    apply_LDA(X_train, y_train)
+
+
+
+    # Predecir clases para el conjunto de validación
+    #y_pred = np.array([multiclass_classifier(sample) for sample in X_val])
+    y_pred = np.array(multiclass_classifier(X_val,y_val))
+    # Calcular la matriz de confusión y otras métricas de rendimiento
+    conf_matrix = confusion_matrix(y_val, y_pred)
+    classification_rep = classification_report(y_val, y_pred)
+
+    print("Matriz de Confusión:")
+    print(conf_matrix)
+    print("\nReporte de Clasificación:")
+    print(classification_rep)
+
 
 
 #interseccion over union

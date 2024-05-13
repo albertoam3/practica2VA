@@ -32,8 +32,8 @@ gnbs =[]
 
 def create_class_features():
     for i, hog_features in enumerate(class_features[1:], 1):
-        hog_features.extend(class_features[0][:1200])
-        class_labels[i].extend(class_labels[0][:1200])
+        hog_features.extend(class_features[0])
+        class_labels[i].extend(class_labels[0])
 
 
 def gnb_func(X_val,Y_val):
@@ -101,7 +101,7 @@ def multiclass_classifier(X_val,y_val):
 
 def hog(image, number):
     win_size = (32, 32)
-    block_size = (8, 8)
+    block_size = (4, 4)
     block_stride = (4, 4)
     cell_size = (4, 4)
     nbins = 9
@@ -109,6 +109,9 @@ def hog(image, number):
     hog_vector = hog.compute(image)
     class_features[number].append(hog_vector)
     class_labels[number].append(number)
+    if(number !=0):
+        print(number)
+        print(hog_vector)
 
 
 def expand_detected_regions(regions, gray_image, original_image, datos, expand_factor=1.2):
@@ -215,20 +218,21 @@ def apply_mser(image_paths, gt_txt):
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
     create_class_features()
-    i=1
+
     X_val_all = []
     y_val_all = []
 
-    for feature in class_features[1:3]:
-        feature_matrix = np.array(feature)
-        class_matrix = np.array(class_labels[i])
+    for h,feature in enumerate(class_features):
+        if h==1 or h==5:
+            feature_matrix = np.array(feature)
+            class_matrix = np.array(class_labels[h])
 
-        X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
-        X_val_all.append(X_val)
-        y_val_all.append(y_val)
+            X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+            X_val_all.append(X_val)
+            y_val_all.append(y_val)
     # Aplicar LDA y entrenar clasificadores binarios
-        gnb_func(X_train, y_train)
-        i=i+1
+            gnb_func(X_train, y_train)
+
 
 
     for X_val, y_val in zip(X_val_all, y_val_all):
@@ -241,7 +245,6 @@ def apply_mser(image_paths, gt_txt):
         print(conf_matrix)
         print("\nReporte de Clasificación:")
         print(classification_rep)
-        i = i + 1
 
 
 

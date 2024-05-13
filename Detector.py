@@ -35,53 +35,69 @@ def create_class_features():
         hog_features.extend(class_features[0])
         class_labels[i].extend(class_labels[0])
 
-def apply_LDA(class_features, class_labels):
+
+def gnb_func(X_val,Y_val):
+
+    X_train_lda=apply_LDA(X_val,Y_val)
+    # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
+    gnb = GaussianNB()
+
+    gnb.fit(X_train_lda, Y_val)
+    gnbs.append(gnb)
+
+def apply_LDA(X_val, y_val):
     #for i, hog_features in enumerate(class_features[1:], 1):
-        hog_matrix = np.array(class_features)
-        n_muestras, n_features = hog_matrix.shape
-
-
-        print("Número de características:", n_features)
-        print("Número de clases:", n_muestras)
+        hog_matrix = np.array(X_val)
 
         lda = LDA()
-        lda.fit(hog_matrix, class_labels)
-
+        lda.fit(hog_matrix, y_val)
         # Reducir la dimensionalidad de los datos de entrenamiento con LDA
-        X_train_lda = lda.transform(hog_matrix)
-
-        print(X_train_lda.shape)
-        # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
-        gnb = GaussianNB()
-
-        gnb.fit(X_train_lda, class_labels)
-        gnbs.append(gnb)
+        return lda.transform(hog_matrix)
 
 
 
 
-def multiclass_classifier(sample,y_val):
 
-    hog_matrix = np.array(sample)
 
-    lda = LDA()
-    lda.fit(hog_matrix, y_val)
-    X_train_lda = lda.transform(hog_matrix)
+def multiclass_classifier(X_val,y_val):
+
+    X_train_lda = apply_LDA(X_val, y_val)
 
     # Obtener las probabilidades de pertenecer a cada clase para cada clasificador binario
     probabilities = []
 
-    #for gnb in gnbs:
-    #    probabilities.append(gnb.predict_proba(X_train_lda)[0])
 
-    probabilities = gnbs[0].predict_proba(X_train_lda)
+    for gnb in gnbs:
+        probabilities.append(gnb.predict_proba(X_train_lda))
 
-# Obtener la clase con la mayor probabilidad para cada muestra
-    predicted_classes = np.argmax(probabilities, axis=1)
+    resultado = []
 
-    print(predicted_classes)
+    for j,prob in enumerate(probabilities):
+        #predicted_classes.append(np.argmax(prob, axis=1))
+        pred = np.argmax(prob, axis=1)
+        indices_y_probabilidades = list(zip(pred, np.max(prob, axis=1)))
+        print(indices_y_probabilidades)
+        for i, (indice, probabilidad) in enumerate(indices_y_probabilidades):
 
-    return predicted_classes
+            if len(resultado)>i and probabilidad>resultado[i][1]:
+                if indice == 0:
+                    resultado[i] = [indice, probabilidad]
+                else:
+                    resultado[i] = [j+1, probabilidad]
+            elif len(resultado)<=i:
+                if indice == 0:
+                    resultado.append([indice, probabilidad])
+                else:
+                    resultado.append([j + 1, probabilidad])
+
+
+    resultado_final=[]
+    for i,p in resultado:
+        resultado_final.append(i)
+
+    print(resultado_final)
+    maximos_por_columna = np.amax(resultado_final, axis=0)
+    return resultado_final
 
 def hog(image, number):
     win_size = (32, 32)
@@ -163,50 +179,24 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
 #Contraste y equalizacion de la imagen
 def enhance_contrast(original_image):
     gray_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
-
-#    plt.imshow(gray_image, cmap='gray')
-#    plt.title('Imagen en escala de grises')
-#    plt.show()
-
-    hist_original = cv2.calcHist([gray_image], [0], None, [256], [0, 256])
-#    plt.plot(hist_original)
-#    plt.title('Histograma de la imagen en escala de grises')
-#    plt.show()
-
-    equ_image = cv2.equalizeHist(gray_image)
-
-#    plt.imshow(equ_image, cmap='gray')
-#    plt.title('Imagen con contraste mejorado')
-#    plt.show()
-
-    hist_equ = cv2.calcHist([equ_image], [0], None, [256], [0, 256])
-#    plt.plot(hist_equ)
-#    plt.title('Histograma de la imagen con contraste mejorado')
-#    plt.show()
-
-    return equ_image
-
+    return cv2.equalizeHist(gray_image)
 
 #Cambiar el tamaño de las imagenes que conseguimos recortando
 def resize_regions(image, target_size=(32, 32)):
     return cv2.resize(image, target_size)
 
-
 def mser_func(original_image, min, max, datos):
     gray_image = enhance_contrast(original_image)
-
     mser = cv2.MSER_create(delta=3, min_area=min, max_area=max)
-
     regions, _ = mser.detectRegions(gray_image)
     expanded_regions = expand_detected_regions(regions, gray_image, original_image, datos)
     return expanded_regions
 
 
 def apply_mser(image_paths, gt_txt):
-    print(image_paths)
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths[:10]:
+    for image_path in image_paths[:20]:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
@@ -225,29 +215,33 @@ def apply_mser(image_paths, gt_txt):
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
     create_class_features()
+    i=1
+    X_val_all = []
+    y_val_all = []
 
-    feature_matrix = np.array(class_features[1])
-    class_matrix = np.array(class_labels[1])
+    for feature in class_features[1:3]:
+        feature_matrix = np.array(feature)
+        class_matrix = np.array(class_labels[i])
 
-    X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2,
-                                                      stratify=class_matrix)
-
+        X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+        X_val_all.append(X_val)
+        y_val_all.append(y_val)
     # Aplicar LDA y entrenar clasificadores binarios
-    apply_LDA(X_train, y_train)
+        gnb_func(X_train, y_train)
+        i=i+1
 
 
+    for X_val, y_val in zip(X_val_all, y_val_all):
+        y_pred = np.array(multiclass_classifier(X_val,y_val))
+        # Calcular la matriz de confusión y otras métricas de rendimiento
+        conf_matrix = confusion_matrix(y_val, y_pred)
+        classification_rep = classification_report(y_val, y_pred)
 
-    # Predecir clases para el conjunto de validación
-    #y_pred = np.array([multiclass_classifier(sample) for sample in X_val])
-    y_pred = np.array(multiclass_classifier(X_val,y_val))
-    # Calcular la matriz de confusión y otras métricas de rendimiento
-    conf_matrix = confusion_matrix(y_val, y_pred)
-    classification_rep = classification_report(y_val, y_pred)
-
-    print("Matriz de Confusión:")
-    print(conf_matrix)
-    print("\nReporte de Clasificación:")
-    print(classification_rep)
+        print("Matriz de Confusión:")
+        print(conf_matrix)
+        print("\nReporte de Clasificación:")
+        print(classification_rep)
+        i = i + 1
 
 
 

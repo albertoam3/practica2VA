@@ -32,8 +32,8 @@ gnbs =[]
 
 def create_class_features():
     for i, hog_features in enumerate(class_features[1:], 1):
-        hog_features.extend(class_features[0])
-        class_labels[i].extend(class_labels[0])
+        hog_features.extend(class_features[0][:1200])
+        class_labels[i].extend(class_labels[0][:1200])
 
 
 def gnb_func(X_val,Y_val):
@@ -196,7 +196,7 @@ def mser_func(original_image, min, max, datos):
 def apply_mser(image_paths, gt_txt):
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths[:20]:
+    for image_path in image_paths[:100]:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:

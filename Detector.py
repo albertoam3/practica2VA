@@ -32,10 +32,10 @@ gnbs =[]
 
 
 def create_class_features():
-    for i, hog_features in enumerate(class_features[1:], 1):
+    for i, hog_features in enumerate(class_features[1:3], 1):
         print(i)
-        hog_features.extend(class_features[0])
-        class_labels[i].extend(class_labels[0])
+        hog_features.extend(class_features[0][:100])
+        class_labels[i].extend(class_labels[0][:100])
 
 def gnb_func(X_val,Y_val):
 
@@ -171,7 +171,8 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             n =5
 
                         if n != -1:
-                            for i in range(1,7):
+
+                            for i in range(0,7):
                                 if i != n:
                                     class_labels[i].append(0)
                                 else:
@@ -227,7 +228,7 @@ def clasificador_binario():
     create_class_features()
     X_val_all = []
     y_val_all = []
-    for h, feature in enumerate(class_features[1:],1):
+    for h, feature in enumerate(class_features[1:3],1):
 
         feature_matrix = np.array(feature)
         class_matrix = np.array(class_labels[h])
@@ -271,7 +272,7 @@ def clasificados_KNN():
 def apply_mser(image_paths, gt_txt):
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths:
+    for image_path in image_paths[:200]:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:

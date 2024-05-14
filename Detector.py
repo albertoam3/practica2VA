@@ -5,6 +5,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelBinarizer
 
 
@@ -32,9 +33,9 @@ gnbs =[]
 
 def create_class_features():
     for i, hog_features in enumerate(class_features[1:], 1):
+        print(i)
         hog_features.extend(class_features[0])
         class_labels[i].extend(class_labels[0])
-
 
 def gnb_func(X_val,Y_val):
 
@@ -44,7 +45,6 @@ def gnb_func(X_val,Y_val):
 
     gnb.fit(X_train_lda, Y_val)
     gnbs.append(gnb)
-
 def apply_LDA(X_val, y_val):
     #for i, hog_features in enumerate(class_features[1:], 1):
         hog_matrix = np.array(X_val)
@@ -98,20 +98,16 @@ def multiclass_classifier(X_val,y_val):
     print(resultado_final)
     maximos_por_columna = np.amax(resultado_final, axis=0)
     return resultado_final
-
-def hog(image, number):
+def hog(image):
     win_size = (32, 32)
-    block_size = (4, 4)
-    block_stride = (4, 4)
+    block_size = (16, 16)
+    block_stride = (8, 8)
     cell_size = (4, 4)
     nbins = 9
     hog = cv2.HOGDescriptor(win_size, block_size, block_stride, cell_size, nbins)
     hog_vector = hog.compute(image)
-    class_features[number].append(hog_vector)
-    class_labels[number].append(number)
-    if(number !=0):
-        print(number)
-        print(hog_vector)
+    return hog_vector
+
 
 
 def expand_detected_regions(regions, gray_image, original_image, datos, expand_factor=1.2):
@@ -141,24 +137,46 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             repetido = True
 
                     if not repetido:
+                        n = -1
+                        hog_vector = ''
                         if dato[5] in num_senal1:
                             senal1.append(imagen_recordata_escala)
-                            hog(imagen_recordata_escala, 1)
+                            hog_vector = hog(imagen_recordata_escala)
+                            n = 1
+
                         elif dato[5] in num_senal2:
                             senal2.append(imagen_recordata_escala)
-                            hog(imagen_recordata_escala, 2)
+                            hog_vector = hog(imagen_recordata_escala)
+
+                            n = 2
                         elif dato[5] in num_senal3:
                             senal3.append(imagen_recordata_escala)
-                            hog(imagen_recordata_escala, 3)
+                            hog_vector = hog(imagen_recordata_escala)
+
+                            n = 3
                         elif dato[5] in num_senal4:
                             senal4.append(imagen_recordata_escala)
-                            hog(imagen_recordata_escala, 4)
+                            hog_vector = hog(imagen_recordata_escala)
+
+                            n = 4
                         elif dato[5] in num_senal5:
                             senal5.append(imagen_recordata_escala)
-                            hog(imagen_recordata_escala, 5)
+                            hog_vector = hog(imagen_recordata_escala)
+
+                            n = 4
                         elif dato[5] in num_senal6:
                             senal6.append(imagen_recordata_escala)
-                            hog(imagen_recordata_escala, 6)
+                            hog_vector = hog(imagen_recordata_escala)
+
+                            n =5
+
+                        if n != -1:
+                            for i in range(1,7):
+                                if i != n:
+                                    class_labels[i].append(0)
+                                else:
+                                    class_labels[i].append(i)
+                                class_features[i].append(hog_vector)
                         else:
                             encontrado = False
                             break
@@ -174,7 +192,9 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                         repetido = True
                 if not repetido:
                     nosenal.append(imagen_recordata_escala)
-                    hog(imagen_recordata_escala, 0)
+                    hog_vector = hog(imagen_recordata_escala)
+                    class_features[0].append(hog_vector)
+                    class_labels[0].append(0)
                 #expanded_regions.append((new_x, new_y, new_w, new_h))
     return expanded_regions
 
@@ -196,10 +216,62 @@ def mser_func(original_image, min, max, datos):
     return expanded_regions
 
 
+
+def KNN_learn(X_val,Y_val):
+    knn = KNeighborsClassifier(n_neighbors=3)  # n_neighbors es el número de vecinos más cercanos
+
+    # 3. Entrenar el clasificador KNN
+    return knn.fit(X_val, Y_val)
+
+def clasificador_binario():
+    create_class_features()
+    X_val_all = []
+    y_val_all = []
+    for h, feature in enumerate(class_features[1:],1):
+
+        feature_matrix = np.array(feature)
+        class_matrix = np.array(class_labels[h])
+
+        X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+        X_val_all.append(X_val)
+        y_val_all.append(y_val)
+        # Aplicar LDA y entrenar clasificadores binarios
+        gnb_func(X_train, y_train)
+
+    for X_val, y_val in zip(X_val_all, y_val_all):
+        y_pred = np.array(multiclass_classifier(X_val, y_val))
+        # Calcular la matriz de confusión y otras métricas de rendimiento
+        conf_matrix = confusion_matrix(y_val, y_pred)
+        classification_rep = classification_report(y_val, y_pred)
+        print("Matriz de Confusión:")
+        print(conf_matrix)
+        print("\nReporte de Clasificación:")
+        print(classification_rep)
+
+def clasificados_KNN():
+    X_val_all = []
+    Y_val_all = []
+    for h, feature in enumerate(class_features):
+        X_val_all.extend(feature)
+        Y_val_all.extend(class_labels[h])
+    X_lda = apply_LDA(X_val_all,Y_val_all)
+    feature_matrix = np.array(X_lda)
+    class_matrix = np.array(Y_val_all)
+    X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+    knn = KNN_learn(X_train, y_train)
+
+    y_pred_train = knn.predict(X_val)
+
+    conf_matrix_train = confusion_matrix(y_val, y_pred_train)
+
+    # 3. Imprimir la matriz de confusión para los datos de entrenamiento
+    print("Matriz de Confusión (Datos de Entrenamiento):\n", conf_matrix_train)
+    print("\nReporte de Clasificación (Datos de Entrenamiento):\n", classification_report(y_val, y_pred_train))
+
 def apply_mser(image_paths, gt_txt):
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths[:100]:
+    for image_path in image_paths:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
@@ -217,35 +289,14 @@ def apply_mser(image_paths, gt_txt):
 
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
-    create_class_features()
-
-    X_val_all = []
-    y_val_all = []
-
-    for h,feature in enumerate(class_features):
-        if h==1 or h==5:
-            feature_matrix = np.array(feature)
-            class_matrix = np.array(class_labels[h])
-
-            X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
-            X_val_all.append(X_val)
-            y_val_all.append(y_val)
-    # Aplicar LDA y entrenar clasificadores binarios
-            gnb_func(X_train, y_train)
 
 
-
-    for X_val, y_val in zip(X_val_all, y_val_all):
-        y_pred = np.array(multiclass_classifier(X_val,y_val))
-        # Calcular la matriz de confusión y otras métricas de rendimiento
-        conf_matrix = confusion_matrix(y_val, y_pred)
-        classification_rep = classification_report(y_val, y_pred)
-
-        print("Matriz de Confusión:")
-        print(conf_matrix)
-        print("\nReporte de Clasificación:")
-        print(classification_rep)
-
+    #clasificador binario
+    clasificador= True
+    if clasificador:
+        clasificador_binario()
+    else:
+        clasificados_KNN()
 
 
 #interseccion over union
@@ -272,6 +323,64 @@ def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
         return True
     else:
         return False
+
+#ejercicio7
+
+def apply_mser_from_test(image_paths):
+    nombre_archivo = "resultado.txt"
+    with open(nombre_archivo, 'w') as archivo:
+        pass
+
+    for image_path in image_paths:
+        original_image = cv2.imread(image_path)
+        if original_image is None:
+            print(f"No se pudo cargar la imagen desde {image_path}")
+            return
+
+        gray_image = enhance_contrast(original_image)
+
+        regis = mser_detect(gray_image, 200, 10000)
+        regs = expand_detected_regions_p1(regis,gray_image,original_image)
+
+        X_matrix = np.array(regs)
+
+
+
+
+def mser_detect( gray, mini, maxi):
+    mser = cv2.MSER_create(delta=3, min_area=mini, max_area=maxi)
+
+    regions, _ = mser.detectRegions(gray)
+
+    return regions
+
+
+def expand_detected_regions_p1(regions, gray_image, original_image, expand_factor=1.2):
+    expanded_regions = []
+    for region in regions:
+
+        if len(region) == 4:
+            x, y, w, h = region
+        else:
+            x, y, w, h = cv2.boundingRect(region)
+        aspect_ratio = w / float(h)
+        if 0.9 <= aspect_ratio <= 1.1:
+            new_x = max(0, int(x - (expand_factor - 1) / 2 * w))
+            new_y = max(0, int(y - (expand_factor - 1) / 2 * h))
+            new_w = min(gray_image.shape[1], int(w * expand_factor))
+            new_h = min(gray_image.shape[0], int(h * expand_factor))
+            imagen_recortada = original_image[new_y:new_y + new_h, new_x:new_x + new_w]
+            img = resize_regions(imagen_recortada)
+
+
+
+            for reg in expanded_regions:
+                if not comparar_rectangulos(reg[0], reg[1], reg[2] + reg[0], reg[3] + reg[1], new_x,
+                                            new_y, new_w + new_x, new_h + new_y):
+
+                    expanded_regions.append(hog(img))
+
+    return expanded_regions
 
 
 if __name__ == "__main__":

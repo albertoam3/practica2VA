@@ -8,6 +8,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelBinarizer
 
+
 num_senal1 = ['0', '1', '2', '3', '4', '5', '7', '8', '9', '10', '15', '16']
 num_senal2 = ['11', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
 num_senal3 = ['14']
@@ -26,84 +27,74 @@ nosenal = []
 class_features = [[], [], [], [], [], [], []]
 class_labels = [[], [], [], [], [], [], []]
 
-gnbs = []
+gnbs =[]
 
-ejercicio = True
-
-
-def ejecicio_check(ejer):
-    ejercicio = ejer
 
 
 def create_class_features():
     for i, hog_features in enumerate(class_features[1:], 1):
         print(i)
-        hog_features.extend(class_features[0])
-        class_labels[i].extend(class_labels[0])
+        hog_features.extend(class_features[0][:1000])
+        class_labels[i].extend(class_labels[0][:1000])
 
+def gnb_func(X_val,Y_val):
 
-def gnb_func(X_val, Y_val):
     # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
     gnb = GaussianNB()
 
     gnb.fit(X_val, Y_val)
     gnbs.append(gnb)
-
-
 def apply_LDA(X_val, y_val):
-    hog_matrix = np.array(X_val)
+        hog_matrix = np.array(X_val)
 
-    lda = LDA()
-    lda.fit(hog_matrix, y_val)
-    # Reducir la dimensionalidad de los datos de entrenamiento con LDA
-    return lda.transform(hog_matrix)
+        lda = LDA()
+        lda.fit(hog_matrix, y_val)
+        # Reducir la dimensionalidad de los datos de entrenamiento con LDA
+        return lda.transform(hog_matrix)
 
 
-def unique_classifier(X_val, classifier):
+def unique_classifier(X_val,classifier):
     etiquetas = classifier.predict(X_val)
     probabilidades = classifier.predict_proba(X_val)
-    #    print(etiquetas)
-    #    print(probabilidades)
+#    print(etiquetas)
+#    print(probabilidades)
     return etiquetas
 
-
-def multiclass_classifier(X_val):
+def multiclass_classifier(X_val,y_val):
     # Obtener las probabilidades de pertenecer a cada clase para cada clasificador binario
     probabilities = []
     etiquetas = []
     for gnb in gnbs:
         probabilities.append(gnb.predict_proba(X_val))
         etiquetas.append(gnb.predict(X_val))
-    #   print(probabilities[-1])
-    #   print(etiquetas[-1])
+     #   print(probabilities[-1])
+     #   print(etiquetas[-1])
 
     resultado = []
 
-    for j, prob in enumerate(probabilities):
+    for j,prob in enumerate(probabilities):
         ind = np.argmax(prob, axis=1)
         indices_y_probabilidades = list(zip(ind, np.max(prob, axis=1)))
         for i, (indice, probabilidad) in enumerate(indices_y_probabilidades):
 
-            if len(resultado) > i and (
-                    (probabilidad > resultado[i][1] and indice != 0) or (resultado[i][0] == 0 and indice != 0)):
+            if len(resultado) > i and ((probabilidad > resultado[i][1] and indice != 0) or (resultado[i][0] == 0 and indice !=0)):
                 if indice == 0:
                     resultado[i] = [indice, probabilidad]
                 else:
-                    resultado[i] = [j + 1, probabilidad]
+                    resultado[i] = [j+1, probabilidad]
             elif len(resultado) <= i:
                 if indice == 0:
                     resultado.append([indice, probabilidad])
                 else:
                     resultado.append([j + 1, probabilidad])
 
-    resultado_final = []
-    porcentaje_final = []
-    for i, p in resultado:
+
+    resultado_final=[]
+    for i,p in resultado:
         resultado_final.append(i)
-        porcentaje_final.append(p)
-    return resultado_final, porcentaje_final
 
-
+    print(resultado_final)
+    return resultado_final
 def hog(image):
     win_size = (32, 32)
     block_size = (16, 16)
@@ -113,6 +104,7 @@ def hog(image):
     hog = cv2.HOGDescriptor(win_size, block_size, block_stride, cell_size, nbins)
     hog_vector = hog.compute(image)
     return hog_vector
+
 
 
 def expand_detected_regions(regions, gray_image, original_image, datos, expand_factor=1.2):
@@ -162,9 +154,9 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             n = 6
 
                         if n != -1:
-                            class_labels[n].append(n)
-                            hog_vector = hog(imagen_recordata_escala)
-                            class_features[n].append(hog_vector)
+                                class_labels[n].append(n)
+                                hog_vector = hog(imagen_recordata_escala)
+                                class_features[n].append(hog_vector)
 
                         else:
                             encontrado = False
@@ -193,11 +185,9 @@ def enhance_contrast(original_image):
     gray_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
     return cv2.equalizeHist(gray_image)
 
-
 #Cambiar el tamaño de las imagenes que conseguimos recortando
 def resize_regions(image, target_size=(32, 32)):
     return cv2.resize(image, target_size)
-
 
 def mser_func(original_image, min, max, datos):
     gray_image = enhance_contrast(original_image)
@@ -207,49 +197,54 @@ def mser_func(original_image, min, max, datos):
     return expanded_regions
 
 
-def KNN_learn(X_val, Y_val):
+
+def KNN_learn(X_val,Y_val):
     knn = KNeighborsClassifier(n_neighbors=3)  # n_neighbors es el número de vecinos más cercanos
 
     # 3. Entrenar el clasificador KNN
     return knn.fit(X_val, Y_val)
 
-
 def clasificador_binario():
     create_class_features()
     X_val_all = [[]]
     y_val_all = [[]]
-    for h, feature in enumerate(class_features[1:], 1):
+    for h, feature in enumerate(class_features[1:],1):
+
         feature_matrix = np.array(feature)
         class_matrix = np.array(class_labels[h])
 
         #X_apply_LDA =apply_LDA(feature_matrix, class_matrix)
-        if ejercicio:
-            X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
 
-            X_val_all[0].extend(X_val)
-            y_val_all[0].extend(y_val)
+        X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
 
-            gnb_func(X_train, y_train)
-            y_pred = unique_classifier(X_val, gnbs[-1])
-            print("Clasificador binario ", h)
+        X_val_all[0].extend(X_val)
+        y_val_all[0].extend(y_val)
 
-            mostrarMatriz(y_val, y_pred)
-        else:
-            gnb_func(feature_matrix, class_matrix)
-
-    if ejercicio:
-        print("-------------------------------------------------------------------------------------------------")
-        #for X_val, y_val in zip(X_val_all, y_val_all):
-        print("Clasificador multiclase ")
-        y_pred, _ = np.array(multiclass_classifier(X_val_all[0]))
-
-        mostrarMatriz(y_val_all[0], y_pred)
-
+        gnb_func(X_train, y_train)
+        y_pred = unique_classifier(X_val, gnbs[-1])
+        conf_matrix = confusion_matrix(y_val, y_pred)
+        classification_rep = classification_report(y_val, y_pred)
+        print("Clasificador binario ",h)
+        print("Matriz de Confusión:")
+        print(conf_matrix)
+        print("\nReporte de Clasificación:")
+        print(classification_rep)
+    print("-------------------------------------------------------------------------------------------------")
+    #for X_val, y_val in zip(X_val_all, y_val_all):
+    print("Clasificador multiclase ")
+    y_pred = np.array(multiclass_classifier(X_val_all[0], y_val_all[0]))
+    # Calcular la matriz de confusión y otras métricas de rendimiento
+    conf_matrix = confusion_matrix(y_val_all[0], y_pred)
+    classification_rep = classification_report(y_val_all[0], y_pred)
+    print("Matriz de Confusión:")
+    print(conf_matrix)
+    print("\nReporte de Clasificación:")
+    print(classification_rep)
 
 def clasificados_KNN():
     X_val_all = []
     Y_val_all = []
-    for labels, feature in zip(class_labels, class_features):
+    for labels, feature in zip(class_labels,class_features):
         X_val_all.extend(feature)
         Y_val_all.extend(labels)
     #X_lda = apply_LDA(X_val_all,Y_val_all)
@@ -262,16 +257,16 @@ def clasificados_KNN():
 
     conf_matrix_train = confusion_matrix(y_val, y_pred_train)
 
-
-    print("Matriz de Confusión para el clasificador KNN:\n", conf_matrix_train)
+    # 3. Imprimir la matriz de confusión para los datos de entrenamiento
+    print("Matriz de Confusión (Datos de Entrenamiento):\n", conf_matrix_train)
     print("\nReporte de Clasificación (Datos de Entrenamiento):\n", classification_report(y_val, y_pred_train))
 
-    return X_val, y_val
 
-
+    return X_val,y_val
 def apply_mser(image_paths, gt_txt):
+
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths:
+    for image_path in image_paths[:600]:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
@@ -290,18 +285,27 @@ def apply_mser(image_paths, gt_txt):
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
 
-    if ejercicio:
 
-        X_val, y_val = clasificados_KNN()
+    #clasificador binario
+    clasificador= True
+    X_val,y_val = clasificados_KNN()
+    if clasificador:
+        clasificador_binario()
+    else:
+        clasificados_KNN()
 
-    clasificador_binario()
 
-    if ejercicio:
-        print("_------------------------------------------")
-        print("claisificador binario con datos de knn")
-        y_pred, _ = np.array(multiclass_classifier(X_val))
-        mostrarMatriz(y_val, y_pred)
+    print("_------------------------------------------")
+    print("claisificador binario con datos de knn")
 
+    y_pred = np.array(multiclass_classifier(X_val, y_val))
+    # Calcular la matriz de confusión y otras métricas de rendimiento
+    conf_matrix = confusion_matrix(y_val, y_pred)
+    classification_rep = classification_report(y_val, y_pred)
+    print("Matriz de Confusión:")
+    print(conf_matrix)
+    print("\nReporte de Clasificación:")
+    print(classification_rep)
 
 #interseccion over union
 def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
@@ -328,7 +332,6 @@ def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
     else:
         return False
 
-
 #ejercicio7
 
 def apply_mser_from_test(image_paths):
@@ -345,22 +348,14 @@ def apply_mser_from_test(image_paths):
         gray_image = enhance_contrast(original_image)
 
         regis = mser_detect(gray_image, 200, 10000)
-        regs, hogs = expand_detected_regions_p1(regis, gray_image, original_image)
+        regs = expand_detected_regions_p1(regis,gray_image,original_image)
 
-        if len(hogs) > 0:
-
-            prediccion, porcentaje = multiclass_classifier(np.array(hogs))
-
-            for pred, porc, r in zip(prediccion, porcentaje, regs):
-                if pred != 0:
-                    print(image_path, pred, porc, r)
-
-                    with open(nombre_archivo, 'a') as archivo:
-                        archivo.write(
-                            f"{image_path[-9:]};{r[0]};{r[1]};{r[0] + r[2]};{r[1] + r[3]};{pred};{porc}\n")
+        X_matrix = np.array(regs)
 
 
-def mser_detect(gray, mini, maxi):
+
+
+def mser_detect( gray, mini, maxi):
     mser = cv2.MSER_create(delta=3, min_area=mini, max_area=maxi)
 
     regions, _ = mser.detectRegions(gray)
@@ -370,7 +365,6 @@ def mser_detect(gray, mini, maxi):
 
 def expand_detected_regions_p1(regions, gray_image, original_image, expand_factor=1.2):
     expanded_regions = []
-    hog_regions = []
     for region in regions:
 
         if len(region) == 4:
@@ -386,27 +380,15 @@ def expand_detected_regions_p1(regions, gray_image, original_image, expand_facto
             imagen_recortada = original_image[new_y:new_y + new_h, new_x:new_x + new_w]
             img = resize_regions(imagen_recortada)
 
-            encontrado = False
+
+
             for reg in expanded_regions:
-                if comparar_rectangulos(reg[0], reg[1], reg[2] + reg[0], reg[3] + reg[1], new_x,
-                                        new_y, new_w + new_x, new_h + new_y):
-                    encontrado = True
-                    #expanded_regions.append([new_x,new_y,new_w,new_h])
-                    #hog_regions.append(hog(img))
-            if not encontrado:
-                expanded_regions.append([new_x, new_y, new_w, new_h])
-                hog_regions.append(hog(img))
-    return expanded_regions, hog_regions
+                if not comparar_rectangulos(reg[0], reg[1], reg[2] + reg[0], reg[3] + reg[1], new_x,
+                                            new_y, new_w + new_x, new_h + new_y):
 
+                    expanded_regions.append(hog(img))
 
-def mostrarMatriz(y_val, y_pred):
-    # Calcular la matriz de confusión y otras métricas de rendimiento
-    conf_matrix = confusion_matrix(y_val, y_pred)
-    classification_rep = classification_report(y_val, y_pred)
-    print("Matriz de Confusión:")
-    print(conf_matrix)
-    print("\nReporte de Clasificación:")
-    print(classification_rep)
+    return expanded_regions
 
 
 if __name__ == "__main__":

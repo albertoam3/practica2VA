@@ -34,19 +34,17 @@ gnbs =[]
 def create_class_features():
     for i, hog_features in enumerate(class_features[1:3], 1):
         print(i)
-        hog_features.extend(class_features[0][:100])
-        class_labels[i].extend(class_labels[0][:100])
+        hog_features.extend(class_features[0][:10])
+        class_labels[i].extend(class_labels[0][:10])
 
 def gnb_func(X_val,Y_val):
 
-    X_train_lda=apply_LDA(X_val,Y_val)
     # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
     gnb = GaussianNB()
 
-    gnb.fit(X_train_lda, Y_val)
+    gnb.fit(X_val, Y_val)
     gnbs.append(gnb)
 def apply_LDA(X_val, y_val):
-    #for i, hog_features in enumerate(class_features[1:], 1):
         hog_matrix = np.array(X_val)
 
         lda = LDA()
@@ -55,36 +53,34 @@ def apply_LDA(X_val, y_val):
         return lda.transform(hog_matrix)
 
 
-
-
-
+def unique_classifier(X_val,classifier):
+    etiquetas = classifier.predict(X_val)
+    probabilidades = classifier.predict_proba(X_val)
+    print(etiquetas)
+    print(probabilidades)
+    return etiquetas
 
 def multiclass_classifier(X_val,y_val):
-
-    X_train_lda = apply_LDA(X_val, y_val)
-
     # Obtener las probabilidades de pertenecer a cada clase para cada clasificador binario
     probabilities = []
-
-
+    etiquetas = []
     for gnb in gnbs:
-        probabilities.append(gnb.predict_proba(X_train_lda))
+        probabilities.append(gnb.predict_proba(X_val))
+        etiquetas.append(gnb.predict(X_val))
 
     resultado = []
 
     for j,prob in enumerate(probabilities):
-        #predicted_classes.append(np.argmax(prob, axis=1))
-        pred = np.argmax(prob, axis=1)
-        indices_y_probabilidades = list(zip(pred, np.max(prob, axis=1)))
-        print(indices_y_probabilidades)
+        ind = np.argmax(prob, axis=1)
+        indices_y_probabilidades = list(zip(ind, np.max(prob, axis=1)))
         for i, (indice, probabilidad) in enumerate(indices_y_probabilidades):
 
-            if len(resultado)>i and probabilidad>resultado[i][1]:
+            if len(resultado) > i and probabilidad > resultado[i][1] and indice != 0:
                 if indice == 0:
                     resultado[i] = [indice, probabilidad]
                 else:
                     resultado[i] = [j+1, probabilidad]
-            elif len(resultado)<=i:
+            elif len(resultado) <= i:
                 if indice == 0:
                     resultado.append([indice, probabilidad])
                 else:
@@ -96,7 +92,6 @@ def multiclass_classifier(X_val,y_val):
         resultado_final.append(i)
 
     print(resultado_final)
-    maximos_por_columna = np.amax(resultado_final, axis=0)
     return resultado_final
 def hog(image):
     win_size = (32, 32)
@@ -135,48 +130,33 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                         if comparar_rectangulos(reg[0], reg[1], reg[2] + reg[0], reg[3] + reg[1], new_x,
                                                 new_y, new_w + new_x, new_h + new_y):
                             repetido = True
-
                     if not repetido:
                         n = -1
-                        hog_vector = ''
                         if dato[5] in num_senal1:
                             senal1.append(imagen_recordata_escala)
-                            hog_vector = hog(imagen_recordata_escala)
                             n = 1
-
                         elif dato[5] in num_senal2:
                             senal2.append(imagen_recordata_escala)
-                            hog_vector = hog(imagen_recordata_escala)
-
                             n = 2
                         elif dato[5] in num_senal3:
                             senal3.append(imagen_recordata_escala)
-                            hog_vector = hog(imagen_recordata_escala)
-
                             n = 3
                         elif dato[5] in num_senal4:
                             senal4.append(imagen_recordata_escala)
-                            hog_vector = hog(imagen_recordata_escala)
-
                             n = 4
                         elif dato[5] in num_senal5:
                             senal5.append(imagen_recordata_escala)
-                            hog_vector = hog(imagen_recordata_escala)
-
                             n = 4
                         elif dato[5] in num_senal6:
                             senal6.append(imagen_recordata_escala)
-                            hog_vector = hog(imagen_recordata_escala)
-
-                            n =5
-
+                            n = 5
                         if n != -1:
-
                             for i in range(0,7):
                                 if i != n:
                                     class_labels[i].append(0)
                                 else:
                                     class_labels[i].append(i)
+                                hog_vector = hog(imagen_recordata_escala)
                                 class_features[i].append(hog_vector)
                         else:
                             encontrado = False
@@ -196,7 +176,7 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                     hog_vector = hog(imagen_recordata_escala)
                     class_features[0].append(hog_vector)
                     class_labels[0].append(0)
-                #expanded_regions.append((new_x, new_y, new_w, new_h))
+
     return expanded_regions
 
 
@@ -228,19 +208,31 @@ def clasificador_binario():
     create_class_features()
     X_val_all = []
     y_val_all = []
-    for h, feature in enumerate(class_features[1:3],1):
+    for h, feature in enumerate(class_features[1:6],1):
 
         feature_matrix = np.array(feature)
         class_matrix = np.array(class_labels[h])
 
-        X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+        X_apply_LDA =apply_LDA(feature_matrix,class_matrix)
+
+        X_train, X_val, y_train, y_val = train_test_split(X_apply_LDA, class_matrix, test_size=0.2)
+
         X_val_all.append(X_val)
         y_val_all.append(y_val)
         # Aplicar LDA y entrenar clasificadores binarios
         gnb_func(X_train, y_train)
 
+        y_pred = unique_classifier(X_val, gnbs[-1])
+
+        conf_matrix = confusion_matrix(y_val, y_pred)
+        classification_rep = classification_report(y_val, y_pred)
+        print("Matriz de Confusión:")
+        print(conf_matrix)
+        print("\nReporte de Clasificación:")
+        print(classification_rep)
+    print("-------------------------------------------------------------------------------------------------")
     for X_val, y_val in zip(X_val_all, y_val_all):
-        y_pred = np.array(multiclass_classifier(X_val, y_val))
+        y_pred = np.array(multiclass_classifier(X_val_all, y_val))
         # Calcular la matriz de confusión y otras métricas de rendimiento
         conf_matrix = confusion_matrix(y_val, y_pred)
         classification_rep = classification_report(y_val, y_pred)

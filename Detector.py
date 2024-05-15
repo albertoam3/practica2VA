@@ -120,7 +120,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
             new_y = max(0, int(y - (expand_factor - 1) / 2 * h))
             new_w = min(gray_image.shape[1], int(w * expand_factor))
             new_h = min(gray_image.shape[0], int(h * expand_factor))
-
             encontrado = False
             imagen_recortada = original_image[new_y:new_y + new_h, new_x:new_x + new_w]
             imagen_recordata_escala = resize_regions(imagen_recortada)
@@ -149,7 +148,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             n = 5
                         elif dato[5] in num_senal6:
                             n = 6
-
                         if n != -1:
                             class_labels[n].append(n)
                             hog_vector = hog(imagen_recordata_escala)
@@ -173,7 +171,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                     hog_vector = hog(imagen_recordata_escala)
                     class_features[0].append(hog_vector)
                     class_labels[0].append(0)
-
     return expanded_regions
 
 
@@ -194,7 +191,6 @@ def mser_func(original_image, min, max, datos):
     regions, _ = mser.detectRegions(gray_image)
     expanded_regions = expand_detected_regions(regions, gray_image, original_image, datos)
     return expanded_regions
-
 
 def KNN_learn(X_val, Y_val):
     knn = KNeighborsClassifier(n_neighbors=3)  # n_neighbors es el número de vecinos más cercanos
@@ -228,10 +224,8 @@ def clasificador_binario():
 
     if ejercicio:
         print("-------------------------------------------------------------------------------------------------")
-        #for X_val, y_val in zip(X_val_all, y_val_all):
-        print("Clasificador multiclase ")
+        print("Clasificador multiclase formado por binarios ")
         y_pred, _ = np.array(multiclass_classifier(X_val_all[0]))
-
         mostrarMatriz(y_val_all[0], y_pred)
 
 
@@ -248,9 +242,7 @@ def clasificados_KNN():
     knn = KNN_learn(X_train, y_train)
 
     y_pred_train = knn.predict(X_val)
-
     conf_matrix_train = confusion_matrix(y_val, y_pred_train)
-
 
     print("Matriz de Confusión para el clasificador KNN:\n", conf_matrix_train)
     print("\nReporte de Clasificación (Datos de Entrenamiento):\n", classification_report(y_val, y_pred_train))
@@ -318,7 +310,6 @@ def apply_mser_from_test(image_paths):
     nombre_archivo = "resultado.txt"
     with open(nombre_archivo, 'w') as archivo:
         pass
-
     for image_path in image_paths:
         original_image = cv2.imread(image_path)
         if original_image is None:

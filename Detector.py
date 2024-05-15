@@ -310,15 +310,9 @@ def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
     union_area = box1_area + box2_area - intersection_area
 
     iou = intersection_area / union_area
+    return iou > 0.3
 
-    if iou > 0.4:
-
-        return True
-    else:
-        return False
-
-
-#ejercicio7
+#ejercicio3
 
 def apply_mser_from_test(image_paths):
     nombre_archivo = "resultado.txt"

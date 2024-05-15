@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
 
 
-    Detector.ejecicio_check(False)
+    Detector.ejercicio_check(False)
     Detector.apply_mser(image_paths,gt_txt)
 
 

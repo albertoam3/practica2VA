@@ -37,7 +37,7 @@ if __name__ == "__main__":
             gt_txt=train_path+'/'+filename
 
 
-    Detector.ejecicio_check(True)
+    Detector.ejercicio_check(True)
     Detector.apply_mser(image_paths,gt_txt)
     # Create the detector
     print("Creando el detector " + args.detector)

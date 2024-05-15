@@ -31,13 +31,13 @@ gnbs = []
 ejercicio = True
 
 
-def ejecicio_check(ejer):
+def ejercicio_check(ejer):
+    global ejercicio
     ejercicio = ejer
 
 
 def create_class_features():
     for i, hog_features in enumerate(class_features[1:], 1):
-        print(i)
         hog_features.extend(class_features[0])
         class_labels[i].extend(class_labels[0])
 
@@ -61,9 +61,6 @@ def apply_LDA(X_val, y_val):
 
 def unique_classifier(X_val, classifier):
     etiquetas = classifier.predict(X_val)
-    probabilidades = classifier.predict_proba(X_val)
-    #    print(etiquetas)
-    #    print(probabilidades)
     return etiquetas
 
 
@@ -74,8 +71,6 @@ def multiclass_classifier(X_val):
     for gnb in gnbs:
         probabilities.append(gnb.predict_proba(X_val))
         etiquetas.append(gnb.predict(X_val))
-    #   print(probabilities[-1])
-    #   print(etiquetas[-1])
 
     resultado = []
 
@@ -143,22 +138,16 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                     if not repetido:
                         n = -1
                         if dato[5] in num_senal1:
-                            senal1.append(imagen_recordata_escala)
                             n = 1
                         elif dato[5] in num_senal2:
-                            senal2.append(imagen_recordata_escala)
                             n = 2
                         elif dato[5] in num_senal3:
-                            senal3.append(imagen_recordata_escala)
                             n = 3
                         elif dato[5] in num_senal4:
-                            senal4.append(imagen_recordata_escala)
                             n = 4
                         elif dato[5] in num_senal5:
-                            senal5.append(imagen_recordata_escala)
                             n = 5
                         elif dato[5] in num_senal6:
-                            senal6.append(imagen_recordata_escala)
                             n = 6
 
                         if n != -1:
@@ -272,7 +261,7 @@ def clasificados_KNN():
 def apply_mser(image_paths, gt_txt):
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
     for image_path in image_paths:
-        print(image_path)
+        #print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
             print(f"No se pudo cargar la imagen desde {image_path}")
@@ -343,18 +332,15 @@ def apply_mser_from_test(image_paths):
             return
 
         gray_image = enhance_contrast(original_image)
-
         regis = mser_detect(gray_image, 200, 10000)
+
         regs, hogs = expand_detected_regions_p1(regis, gray_image, original_image)
 
         if len(hogs) > 0:
-
             prediccion, porcentaje = multiclass_classifier(np.array(hogs))
-
             for pred, porc, r in zip(prediccion, porcentaje, regs):
                 if pred != 0:
-                    print(image_path, pred, porc, r)
-
+                    #print(image_path, pred, porc, r)
                     with open(nombre_archivo, 'a') as archivo:
                         archivo.write(
                             f"{image_path[-9:]};{r[0]};{r[1]};{r[0] + r[2]};{r[1] + r[3]};{pred};{porc}\n")
@@ -362,10 +348,28 @@ def apply_mser_from_test(image_paths):
 
 def mser_detect(gray, mini, maxi):
     mser = cv2.MSER_create(delta=3, min_area=mini, max_area=maxi)
-
     regions, _ = mser.detectRegions(gray)
-
     return regions
+
+def transformada_Hough( gray):
+    # Aplica un desenfoque gaussiano para reducir el ruido
+    blurred = cv2.GaussianBlur(gray, (9, 9), 2)
+
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1, minDist=50,
+                               param1=200, param2=30, minRadius=10, maxRadius=100)
+    regions = []
+    if circles is not None:
+        circles = np.round(circles[0, :]).astype("int")
+        for (x, y, r) in circles:
+            # Calcula las coordenadas del cuadrado
+            x1 = x - r
+            y1 = y - r
+            w = h = 2 * r
+            regions.append([x1, y1, w, h])
+    return regions
+
+
+
 
 
 def expand_detected_regions_p1(regions, gray_image, original_image, expand_factor=1.2):
@@ -391,8 +395,6 @@ def expand_detected_regions_p1(regions, gray_image, original_image, expand_facto
                 if comparar_rectangulos(reg[0], reg[1], reg[2] + reg[0], reg[3] + reg[1], new_x,
                                         new_y, new_w + new_x, new_h + new_y):
                     encontrado = True
-                    #expanded_regions.append([new_x,new_y,new_w,new_h])
-                    #hog_regions.append(hog(img))
             if not encontrado:
                 expanded_regions.append([new_x, new_y, new_w, new_h])
                 hog_regions.append(hog(img))

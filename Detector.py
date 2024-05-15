@@ -6,7 +6,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import LabelBinarizer
+
 
 num_senal1 = ['0', '1', '2', '3', '4', '5', '7', '8', '9', '10', '15', '16']
 num_senal2 = ['11', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
@@ -15,21 +15,11 @@ num_senal4 = ['17']
 num_senal5 = ['13']
 num_senal6 = ['38']
 
-senal1 = []
-senal2 = []
-senal3 = []
-senal4 = []
-senal5 = []
-senal6 = []
-nosenal = []
-
 class_features = [[], [], [], [], [], [], []]
 class_labels = [[], [], [], [], [], [], []]
 
 gnbs = []
-
 ejercicio = True
-
 
 def ejercicio_check(ejer):
     global ejercicio
@@ -41,18 +31,14 @@ def create_class_features():
         hog_features.extend(class_features[0])
         class_labels[i].extend(class_labels[0])
 
-
 def gnb_func(X_val, Y_val):
     # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
     gnb = GaussianNB()
-
     gnb.fit(X_val, Y_val)
     gnbs.append(gnb)
 
-
 def apply_LDA(X_val, y_val):
     hog_matrix = np.array(X_val)
-
     lda = LDA()
     lda.fit(hog_matrix, y_val)
     # Reducir la dimensionalidad de los datos de entrenamiento con LDA
@@ -167,7 +153,7 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                                             new_y, new_w + new_x, new_h + new_y):
                         repetido = True
                 if not repetido:
-                    nosenal.append(imagen_recordata_escala)
+
                     hog_vector = hog(imagen_recordata_escala)
                     class_features[0].append(hog_vector)
                     class_labels[0].append(0)
@@ -240,13 +226,10 @@ def clasificados_KNN():
     class_matrix = np.array(Y_val_all)
     X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
     knn = KNN_learn(X_train, y_train)
-
     y_pred_train = knn.predict(X_val)
     conf_matrix_train = confusion_matrix(y_val, y_pred_train)
-
     print("Matriz de Confusión para el clasificador KNN:\n", conf_matrix_train)
     print("\nReporte de Clasificación (Datos de Entrenamiento):\n", classification_report(y_val, y_pred_train))
-
     return X_val, y_val
 
 
@@ -260,29 +243,25 @@ def apply_mser(image_paths, gt_txt):
             return
 
         datos_imagen = [arr for arr in datos if arr[0] == image_path[-9:]]
-
         expanded_regions = mser_func(original_image, 200, 20000, datos_imagen)
 
         #dibujar los cuadrados en la imagen
         for x, y, w, h in expanded_regions:
             cv2.rectangle(original_image, (x, y), (x + w, y + h), (0, 0, 255), 1)
-        #cv2.imshow("original", original_image)
 
+        #cv2.imshow("original", original_image)
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
 
     if ejercicio:
-
         X_val, y_val = clasificados_KNN()
 
     clasificador_binario()
-
     if ejercicio:
         print("_------------------------------------------")
         print("claisificador binario con datos de knn")
         y_pred, _ = np.array(multiclass_classifier(X_val))
         mostrarMatriz(y_val, y_pred)
-
 
 #interseccion over union
 def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
@@ -291,7 +270,6 @@ def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
     y1 = max(y11, y21)
     x2 = min(x12, x22)
     y2 = min(y12, y22)
-
     # Calcular la superficie de la intersección
     intersection_width = max(0, x2 - x1)
     intersection_height = max(0, y2 - y1)
@@ -305,7 +283,6 @@ def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):
     return iou > 0.3
 
 #ejercicio3
-
 def apply_mser_from_test(image_paths):
     nombre_archivo = "resultado.txt"
     with open(nombre_archivo, 'w') as archivo:
@@ -353,10 +330,6 @@ def transformada_Hough( gray):
             regions.append([x1, y1, w, h])
     return regions
 
-
-
-
-
 def expand_detected_regions_p1(regions, gray_image, original_image, expand_factor=1.2):
     expanded_regions = []
     hog_regions = []
@@ -374,7 +347,6 @@ def expand_detected_regions_p1(regions, gray_image, original_image, expand_facto
             new_h = min(gray_image.shape[0], int(h * expand_factor))
             imagen_recortada = original_image[new_y:new_y + new_h, new_x:new_x + new_w]
             img = resize_regions(imagen_recortada)
-
             encontrado = False
             for reg in expanded_regions:
                 if comparar_rectangulos(reg[0], reg[1], reg[2] + reg[0], reg[3] + reg[1], new_x,
@@ -385,7 +357,6 @@ def expand_detected_regions_p1(regions, gray_image, original_image, expand_facto
                 hog_regions.append(hog(img))
     return expanded_regions, hog_regions
 
-
 def mostrarMatriz(y_val, y_pred):
     # Calcular la matriz de confusión y otras métricas de rendimiento
     conf_matrix = confusion_matrix(y_val, y_pred)
@@ -395,12 +366,9 @@ def mostrarMatriz(y_val, y_pred):
     print("\nReporte de Clasificación:")
     print(classification_rep)
 
-
 if __name__ == "__main__":
     import sys
-
     if len(sys.argv) > 1:
-
         apply_mser(sys.argv[1])
     else:
         print("Usage: python detector.py path_to_image")

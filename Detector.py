@@ -32,10 +32,10 @@ gnbs =[]
 
 
 def create_class_features():
-    for i, hog_features in enumerate(class_features[1:3], 1):
+    for i, hog_features in enumerate(class_features[1:], 1):
         print(i)
-        hog_features.extend(class_features[0][:10])
-        class_labels[i].extend(class_labels[0][:10])
+        hog_features.extend(class_features[0][:1000])
+        class_labels[i].extend(class_labels[0][:1000])
 
 def gnb_func(X_val,Y_val):
 
@@ -56,8 +56,8 @@ def apply_LDA(X_val, y_val):
 def unique_classifier(X_val,classifier):
     etiquetas = classifier.predict(X_val)
     probabilidades = classifier.predict_proba(X_val)
-    print(etiquetas)
-    print(probabilidades)
+#    print(etiquetas)
+#    print(probabilidades)
     return etiquetas
 
 def multiclass_classifier(X_val,y_val):
@@ -67,6 +67,8 @@ def multiclass_classifier(X_val,y_val):
     for gnb in gnbs:
         probabilities.append(gnb.predict_proba(X_val))
         etiquetas.append(gnb.predict(X_val))
+     #   print(probabilities[-1])
+     #   print(etiquetas[-1])
 
     resultado = []
 
@@ -75,7 +77,7 @@ def multiclass_classifier(X_val,y_val):
         indices_y_probabilidades = list(zip(ind, np.max(prob, axis=1)))
         for i, (indice, probabilidad) in enumerate(indices_y_probabilidades):
 
-            if len(resultado) > i and probabilidad > resultado[i][1] and indice != 0:
+            if len(resultado) > i and ((probabilidad > resultado[i][1] and indice != 0) or (resultado[i][0] == 0 and indice !=0)):
                 if indice == 0:
                     resultado[i] = [indice, probabilidad]
                 else:
@@ -96,11 +98,14 @@ def multiclass_classifier(X_val,y_val):
 def hog(image):
     win_size = (32, 32)
     block_size = (16, 16)
-    block_stride = (8, 8)
+    block_stride = (4, 4)
     cell_size = (4, 4)
     nbins = 9
     hog = cv2.HOGDescriptor(win_size, block_size, block_stride, cell_size, nbins)
     hog_vector = hog.compute(image)
+#    print("----------------")
+#    print(hog_vector.shape)
+#    print(hog_vector)
     return hog_vector
 
 
@@ -146,18 +151,20 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             n = 4
                         elif dato[5] in num_senal5:
                             senal5.append(imagen_recordata_escala)
-                            n = 4
+                            n = 5
                         elif dato[5] in num_senal6:
                             senal6.append(imagen_recordata_escala)
-                            n = 5
+                            n = 6
                         if n != -1:
-                            for i in range(0,7):
+                            for i in range(7):
                                 if i != n:
-                                    class_labels[i].append(0)
+                                    print()
+                                    #class_labels[i].append(0)
                                 else:
                                     class_labels[i].append(i)
-                                hog_vector = hog(imagen_recordata_escala)
-                                class_features[i].append(hog_vector)
+                                    hog_vector = hog(imagen_recordata_escala)
+                                    class_features[i].append(hog_vector)
+
                         else:
                             encontrado = False
                             break
@@ -206,23 +213,25 @@ def KNN_learn(X_val,Y_val):
 
 def clasificador_binario():
     create_class_features()
-    X_val_all = []
-    y_val_all = []
-    for h, feature in enumerate(class_features[1:6],1):
+    X_val_all = [[]]
+    y_val_all = [[]]
+    for h, feature in enumerate(class_features[1:],1):
 
         feature_matrix = np.array(feature)
         class_matrix = np.array(class_labels[h])
 
-        X_apply_LDA =apply_LDA(feature_matrix,class_matrix)
+        #X_apply_LDA =apply_LDA(feature_matrix, class_matrix)
 
-        X_train, X_val, y_train, y_val = train_test_split(X_apply_LDA, class_matrix, test_size=0.2)
+        X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
 
-        X_val_all.append(X_val)
-        y_val_all.append(y_val)
+        X_val_all[0].extend(X_val)
+        y_val_all[0].extend(y_val)
         # Aplicar LDA y entrenar clasificadores binarios
+
         gnb_func(X_train, y_train)
 
         y_pred = unique_classifier(X_val, gnbs[-1])
+
 
         conf_matrix = confusion_matrix(y_val, y_pred)
         classification_rep = classification_report(y_val, y_pred)
@@ -232,7 +241,7 @@ def clasificador_binario():
         print(classification_rep)
     print("-------------------------------------------------------------------------------------------------")
     for X_val, y_val in zip(X_val_all, y_val_all):
-        y_pred = np.array(multiclass_classifier(X_val_all, y_val))
+        y_pred = np.array(multiclass_classifier(X_val, y_val))
         # Calcular la matriz de confusión y otras métricas de rendimiento
         conf_matrix = confusion_matrix(y_val, y_pred)
         classification_rep = classification_report(y_val, y_pred)
@@ -264,7 +273,7 @@ def clasificados_KNN():
 def apply_mser(image_paths, gt_txt):
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths[:200]:
+    for image_path in image_paths[:600]:
         print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:

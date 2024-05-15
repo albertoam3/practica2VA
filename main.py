@@ -3,7 +3,7 @@ import os
 
 import cv2
 
-import Detector
+import Detector2
 
 if __name__ == "__main__":
 
@@ -26,6 +26,8 @@ if __name__ == "__main__":
     # Cargar los datos de entrenamiento sin se necesita
     print("Cargando datos de entrenamiento desde " + args.train_path)
 
+
+
     image_paths = []
     print(train_path)
     # Obtener la lista de archivos en la carpeta train_path
@@ -38,7 +40,17 @@ if __name__ == "__main__":
             gt_txt=train_path+'/'+filename
 
 
-    Detector.apply_mser(image_paths,gt_txt)
+
+    Detector2.ejecicio_check(False)
+    Detector2.apply_mser(image_paths,gt_txt)
+
+
+    image_test_path = []
+    for filename in os.listdir(test_path+"_alumnos"):
+        if filename.endswith(".ppm"):  # Filtrar solo archivos de imagen
+            image_test_path.append(os.path.join(test_path+"_alumnos", filename))
+
+    Detector2.apply_mser_from_test(image_test_path)
     # Create the detector
     print("Creando el detector " + args.detector)
 

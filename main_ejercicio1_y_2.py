@@ -4,6 +4,7 @@ import os
 import cv2
 
 import Detector
+import Detector2
 
 if __name__ == "__main__":
 
@@ -13,14 +14,12 @@ if __name__ == "__main__":
         '--detector', type=str, nargs="?", default="", help='Nombre del detector a ejecutar')
     parser.add_argument(
         '--train_path', default="", help='Carpeta con las imágenes de entrenamiento')
-    parser.add_argument(
-        '--test_path', default="", help='Carpeta con las imágenes de test')
 
     args = parser.parse_args()
 
     train_path = args.train_path
 
-    test_path = args.test_path
+
 
 
     # Cargar los datos de entrenamiento sin se necesita
@@ -38,12 +37,11 @@ if __name__ == "__main__":
             gt_txt=train_path+'/'+filename
 
 
-    Detector.apply_mser(image_paths,gt_txt)
+    Detector2.ejecicio_check(True)
+    Detector2.apply_mser(image_paths,gt_txt)
     # Create the detector
     print("Creando el detector " + args.detector)
 
-    # Cargar los datos de test y ejecutar el detector en esas imágenes
-    print("Probando el detector " + args.detector + " en " + args.test_path)
 
 
 

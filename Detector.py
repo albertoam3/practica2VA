@@ -103,9 +103,6 @@ def hog(image):
     nbins = 9
     hog = cv2.HOGDescriptor(win_size, block_size, block_stride, cell_size, nbins)
     hog_vector = hog.compute(image)
-#    print("----------------")
-#    print(hog_vector.shape)
-#    print(hog_vector)
     return hog_vector
 
 
@@ -155,15 +152,11 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                         elif dato[5] in num_senal6:
                             senal6.append(imagen_recordata_escala)
                             n = 6
+
                         if n != -1:
-                            for i in range(7):
-                                if i != n:
-                                    print()
-                                    #class_labels[i].append(0)
-                                else:
-                                    class_labels[i].append(i)
-                                    hog_vector = hog(imagen_recordata_escala)
-                                    class_features[i].append(hog_vector)
+                                class_labels[n].append(n)
+                                hog_vector = hog(imagen_recordata_escala)
+                                class_features[n].append(hog_vector)
 
                         else:
                             encontrado = False
@@ -226,38 +219,36 @@ def clasificador_binario():
 
         X_val_all[0].extend(X_val)
         y_val_all[0].extend(y_val)
-        # Aplicar LDA y entrenar clasificadores binarios
 
         gnb_func(X_train, y_train)
-
         y_pred = unique_classifier(X_val, gnbs[-1])
-
-
         conf_matrix = confusion_matrix(y_val, y_pred)
         classification_rep = classification_report(y_val, y_pred)
+        print("Clasificador binario ",h)
         print("Matriz de Confusión:")
         print(conf_matrix)
         print("\nReporte de Clasificación:")
         print(classification_rep)
     print("-------------------------------------------------------------------------------------------------")
-    for X_val, y_val in zip(X_val_all, y_val_all):
-        y_pred = np.array(multiclass_classifier(X_val, y_val))
-        # Calcular la matriz de confusión y otras métricas de rendimiento
-        conf_matrix = confusion_matrix(y_val, y_pred)
-        classification_rep = classification_report(y_val, y_pred)
-        print("Matriz de Confusión:")
-        print(conf_matrix)
-        print("\nReporte de Clasificación:")
-        print(classification_rep)
+    #for X_val, y_val in zip(X_val_all, y_val_all):
+    print("Clasificador multiclase ")
+    y_pred = np.array(multiclass_classifier(X_val_all[0], y_val_all[0]))
+    # Calcular la matriz de confusión y otras métricas de rendimiento
+    conf_matrix = confusion_matrix(y_val_all[0], y_pred)
+    classification_rep = classification_report(y_val_all[0], y_pred)
+    print("Matriz de Confusión:")
+    print(conf_matrix)
+    print("\nReporte de Clasificación:")
+    print(classification_rep)
 
 def clasificados_KNN():
     X_val_all = []
     Y_val_all = []
-    for h, feature in enumerate(class_features):
+    for labels, feature in zip(class_labels,class_features):
         X_val_all.extend(feature)
-        Y_val_all.extend(class_labels[h])
-    X_lda = apply_LDA(X_val_all,Y_val_all)
-    feature_matrix = np.array(X_lda)
+        Y_val_all.extend(labels)
+    #X_lda = apply_LDA(X_val_all,Y_val_all)
+    feature_matrix = np.array(X_val_all)
     class_matrix = np.array(Y_val_all)
     X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
     knn = KNN_learn(X_train, y_train)
@@ -270,6 +261,8 @@ def clasificados_KNN():
     print("Matriz de Confusión (Datos de Entrenamiento):\n", conf_matrix_train)
     print("\nReporte de Clasificación (Datos de Entrenamiento):\n", classification_report(y_val, y_pred_train))
 
+
+    return X_val,y_val
 def apply_mser(image_paths, gt_txt):
 
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
@@ -295,11 +288,24 @@ def apply_mser(image_paths, gt_txt):
 
     #clasificador binario
     clasificador= True
+    X_val,y_val = clasificados_KNN()
     if clasificador:
         clasificador_binario()
     else:
         clasificados_KNN()
 
+
+    print("_------------------------------------------")
+    print("claisificador binario con datos de knn")
+
+    y_pred = np.array(multiclass_classifier(X_val, y_val))
+    # Calcular la matriz de confusión y otras métricas de rendimiento
+    conf_matrix = confusion_matrix(y_val, y_pred)
+    classification_rep = classification_report(y_val, y_pred)
+    print("Matriz de Confusión:")
+    print(conf_matrix)
+    print("\nReporte de Clasificación:")
+    print(classification_rep)
 
 #interseccion over union
 def comparar_rectangulos(x11, y11, x12, y12, x21, y21, x22, y22):

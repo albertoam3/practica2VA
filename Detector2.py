@@ -211,24 +211,21 @@ def clasificador_binario():
     for h, feature in enumerate(class_features[1:], 1):
         x = X_train[h]
         x.extend(X_train[0])
-
         feature_matrix = np.array(x)
+
         y = y_train[h]
         y.extend(y_train[0])
-
         class_matrix = np.array(y)
 
         #X_apply_LDA =apply_LDA(feature_matrix, class_matrix)
         if ejercicio:
             gnb_func(feature_matrix, class_matrix)
             x_vl = X_val[h]
-            x_vl.extend(X_val[0][:100])
+            x_vl.extend(X_val[0])
 
             y_vl = y_val[h]
-            y_vl.extend(y_val[0][:100])
-
+            y_vl.extend(y_val[0])
             y_total[0].extend(y_vl)
-
 
             #x_vl_with_lda =apply_LDA(x_vl, y_vl)
 

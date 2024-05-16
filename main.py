@@ -3,7 +3,7 @@ import os
 
 import cv2
 
-import Detector
+import Detector2
 
 if __name__ == "__main__":
 
@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
 
 
-    Detector.ejercicio_check(False)
-    Detector.apply_mser(image_paths,gt_txt)
+    Detector2.ejercicio_check(False)
+    Detector2.apply_mser(image_paths,gt_txt)
 
 
     image_test_path = []
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         if filename.endswith(".ppm"):  # Filtrar solo archivos de imagen
             image_test_path.append(os.path.join(test_path+"_alumnos", filename))
 
-    Detector.apply_mser_from_test(image_test_path)
+    Detector2.apply_mser_from_test(image_test_path)
     # Create the detector
     print("Creando el detector " + args.detector)
 

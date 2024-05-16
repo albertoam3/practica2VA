@@ -186,33 +186,66 @@ def KNN_learn(X_val, Y_val):
 
 
 def clasificador_binario():
-    create_class_features()
-    X_val_all = [[]]
-    y_val_all = [[]]
+    X_train = []
+    X_val = []
+    y_train = []
+    y_val = []
+    X_total = [[]]
+    y_total = [[]]
+
+    for l,f in zip(class_labels,class_features):
+        if ejercicio:
+            X_train_aux, X_val_aux, y_train_aux, y_val_aux = train_test_split(f, l, test_size=0.2)
+
+            X_train.append(X_train_aux)
+            X_val.append(X_val_aux)
+
+            y_train.append(y_train_aux)
+            y_val.append(y_val_aux)
+        else:
+            X_train.append(f)
+            y_train.append(l)
+    #X_final = apply_LDA(X_train_lda[0], y_train_lda[0])
+    #create_class_features()
+
     for h, feature in enumerate(class_features[1:], 1):
-        feature_matrix = np.array(feature)
-        class_matrix = np.array(class_labels[h])
+        x = X_train[h]
+        x.extend(X_train[0])
+
+        feature_matrix = np.array(x)
+        y = y_train[h]
+        y.extend(y_train[0])
+
+        class_matrix = np.array(y)
 
         #X_apply_LDA =apply_LDA(feature_matrix, class_matrix)
         if ejercicio:
-            X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+            gnb_func(feature_matrix, class_matrix)
+            x_vl = X_val[h]
+            x_vl.extend(X_val[0][:100])
 
-            X_val_all[0].extend(X_val)
-            y_val_all[0].extend(y_val)
+            y_vl = y_val[h]
+            y_vl.extend(y_val[0][:100])
 
-            gnb_func(X_train, y_train)
-            y_pred = unique_classifier(X_val, gnbs[-1])
+            y_total[0].extend(y_vl)
+
+
+            #x_vl_with_lda =apply_LDA(x_vl, y_vl)
+
+            X_total[0].extend(x_vl)
+
+            y_pred = unique_classifier(x_vl, gnbs[-1])
             print("Clasificador binario ", h)
 
-            mostrarMatriz(y_val, y_pred)
+            mostrarMatriz(y_vl, y_pred)
         else:
             gnb_func(feature_matrix, class_matrix)
 
     if ejercicio:
         print("-------------------------------------------------------------------------------------------------")
         print("Clasificador multiclase formado por binarios ")
-        y_pred, _ = np.array(multiclass_classifier(X_val_all[0]))
-        mostrarMatriz(y_val_all[0], y_pred)
+        y_pred, _ = np.array(multiclass_classifier(X_total[0]))
+        mostrarMatriz(y_total[0], y_pred)
 
 
 def clasificados_KNN():
@@ -235,7 +268,7 @@ def clasificados_KNN():
 
 def apply_mser(image_paths, gt_txt):
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths:
+    for image_path in image_paths[:600]:
         #print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
@@ -254,6 +287,7 @@ def apply_mser(image_paths, gt_txt):
         #cv2.destroyAllWindows()
 
     if ejercicio:
+    #if ejercicio:
         X_val, y_val = clasificados_KNN()
 
     clasificador_binario()

@@ -32,7 +32,7 @@ if __name__ == "__main__":
     for filename in os.listdir(train_path):
         if filename.endswith(".ppm"):  # Filtrar solo archivos de imagen
             image_paths.append(os.path.join(train_path, filename))
-        else:
+        elif filename.endswith(".txt"):
             gt_txt=train_path+'/'+filename
 
 

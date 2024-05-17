@@ -25,12 +25,6 @@ def ejercicio_check(ejer):
     global ejercicio
     ejercicio = ejer
 
-
-def create_class_features():
-    for i, hog_features in enumerate(class_features[1:], 1):
-        hog_features.extend(class_features[0])
-        class_labels[i].extend(class_labels[0])
-
 def gnb_func(X_val, Y_val):
     # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
     gnb = GaussianNB()
@@ -138,7 +132,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             class_labels[n].append(n)
                             hog_vector = hog(imagen_recordata_escala)
                             class_features[n].append(hog_vector)
-
                         else:
                             encontrado = False
                             break
@@ -153,7 +146,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                                             new_y, new_w + new_x, new_h + new_y):
                         repetido = True
                 if not repetido:
-
                     hog_vector = hog(imagen_recordata_escala)
                     class_features[0].append(hog_vector)
                     class_labels[0].append(0)
@@ -186,33 +178,62 @@ def KNN_learn(X_val, Y_val):
 
 
 def clasificador_binario():
-    create_class_features()
-    X_val_all = [[]]
-    y_val_all = [[]]
+    X_train = []
+    X_val = []
+    y_train = []
+    y_val = []
+    X_total = [[]]
+    y_total = [[]]
+
+    for l,f in zip(class_labels,class_features):
+        if ejercicio:
+            X_train_aux, X_val_aux, y_train_aux, y_val_aux = train_test_split(f, l, test_size=0.2)
+
+            X_train.append(X_train_aux)
+            X_val.append(X_val_aux)
+
+            y_train.append(y_train_aux)
+            y_val.append(y_val_aux)
+        else:
+            X_train.append(f)
+            y_train.append(l)
+    #X_final = apply_LDA(X_train_lda[0], y_train_lda[0])
+
     for h, feature in enumerate(class_features[1:], 1):
-        feature_matrix = np.array(feature)
-        class_matrix = np.array(class_labels[h])
+        x = X_train[h]
+        x.extend(X_train[0])
+        feature_matrix = np.array(x)
+
+        y = y_train[h]
+        y.extend(y_train[0])
+        class_matrix = np.array(y)
 
         #X_apply_LDA =apply_LDA(feature_matrix, class_matrix)
         if ejercicio:
-            X_train, X_val, y_train, y_val = train_test_split(feature_matrix, class_matrix, test_size=0.2)
+            gnb_func(feature_matrix, class_matrix)
+            x_vl = X_val[h]
+            x_vl.extend(X_val[0])
 
-            X_val_all[0].extend(X_val)
-            y_val_all[0].extend(y_val)
+            y_vl = y_val[h]
+            y_vl.extend(y_val[0])
+            y_total[0].extend(y_vl)
 
-            gnb_func(X_train, y_train)
-            y_pred = unique_classifier(X_val, gnbs[-1])
+            #x_vl_with_lda =apply_LDA(x_vl, y_vl)
+
+            X_total[0].extend(x_vl)
+
+            y_pred = unique_classifier(x_vl, gnbs[-1])
             print("Clasificador binario ", h)
 
-            mostrarMatriz(y_val, y_pred)
+            mostrarMatriz(y_vl, y_pred)
         else:
             gnb_func(feature_matrix, class_matrix)
 
     if ejercicio:
         print("-------------------------------------------------------------------------------------------------")
         print("Clasificador multiclase formado por binarios ")
-        y_pred, _ = np.array(multiclass_classifier(X_val_all[0]))
-        mostrarMatriz(y_val_all[0], y_pred)
+        y_pred, _ = np.array(multiclass_classifier(X_total[0]))
+        mostrarMatriz(y_total[0], y_pred)
 
 
 def clasificados_KNN():
@@ -235,7 +256,7 @@ def clasificados_KNN():
 
 def apply_mser(image_paths, gt_txt):
     datos = [linea.strip().split(';') for linea in open(gt_txt, 'r')]
-    for image_path in image_paths:
+    for image_path in image_paths[:600]:
         #print(image_path)
         original_image = cv2.imread(image_path)
         if original_image is None:
@@ -249,11 +270,8 @@ def apply_mser(image_paths, gt_txt):
         for x, y, w, h in expanded_regions:
             cv2.rectangle(original_image, (x, y), (x + w, y + h), (0, 0, 255), 1)
 
-        #cv2.imshow("original", original_image)
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
-
     if ejercicio:
+
         X_val, y_val = clasificados_KNN()
 
     clasificador_binario()
@@ -311,23 +329,6 @@ def apply_mser_from_test(image_paths):
 def mser_detect(gray, mini, maxi):
     mser = cv2.MSER_create(delta=3, min_area=mini, max_area=maxi)
     regions, _ = mser.detectRegions(gray)
-    return regions
-
-def transformada_Hough( gray):
-    # Aplica un desenfoque gaussiano para reducir el ruido
-    blurred = cv2.GaussianBlur(gray, (9, 9), 2)
-
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1, minDist=50,
-                               param1=200, param2=30, minRadius=10, maxRadius=100)
-    regions = []
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        for (x, y, r) in circles:
-            # Calcula las coordenadas del cuadrado
-            x1 = x - r
-            y1 = y - r
-            w = h = 2 * r
-            regions.append([x1, y1, w, h])
     return regions
 
 def expand_detected_regions_p1(regions, gray_image, original_image, expand_factor=1.2):

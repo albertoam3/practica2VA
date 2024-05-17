@@ -3,8 +3,7 @@ import os
 
 import cv2
 
-import Detector_antiguo
-import Detector2
+import Detector
 
 if __name__ == "__main__":
 
@@ -37,8 +36,8 @@ if __name__ == "__main__":
             gt_txt=train_path+'/'+filename
 
 
-    Detector2.ejercicio_check(True)
-    Detector2.apply_mser(image_paths,gt_txt)
+    Detector.ejercicio_check(True)
+    Detector.apply_mser(image_paths,gt_txt)
     # Create the detector
     print("Creando el detector " + args.detector)
 

@@ -25,12 +25,6 @@ def ejercicio_check(ejer):
     global ejercicio
     ejercicio = ejer
 
-
-def create_class_features():
-    for i, hog_features in enumerate(class_features[1:], 1):
-        hog_features.extend(class_features[0])
-        class_labels[i].extend(class_labels[0])
-
 def gnb_func(X_val, Y_val):
     # Inicializar y ajustar el clasificador Bayesiano con Gaussianas
     gnb = GaussianNB()
@@ -138,7 +132,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                             class_labels[n].append(n)
                             hog_vector = hog(imagen_recordata_escala)
                             class_features[n].append(hog_vector)
-
                         else:
                             encontrado = False
                             break
@@ -153,7 +146,6 @@ def expand_detected_regions(regions, gray_image, original_image, datos, expand_f
                                             new_y, new_w + new_x, new_h + new_y):
                         repetido = True
                 if not repetido:
-
                     hog_vector = hog(imagen_recordata_escala)
                     class_features[0].append(hog_vector)
                     class_labels[0].append(0)
@@ -206,7 +198,6 @@ def clasificador_binario():
             X_train.append(f)
             y_train.append(l)
     #X_final = apply_LDA(X_train_lda[0], y_train_lda[0])
-    #create_class_features()
 
     for h, feature in enumerate(class_features[1:], 1):
         x = X_train[h]
@@ -279,12 +270,8 @@ def apply_mser(image_paths, gt_txt):
         for x, y, w, h in expanded_regions:
             cv2.rectangle(original_image, (x, y), (x + w, y + h), (0, 0, 255), 1)
 
-        #cv2.imshow("original", original_image)
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
-
     if ejercicio:
-    #if ejercicio:
+
         X_val, y_val = clasificados_KNN()
 
     clasificador_binario()
@@ -342,23 +329,6 @@ def apply_mser_from_test(image_paths):
 def mser_detect(gray, mini, maxi):
     mser = cv2.MSER_create(delta=3, min_area=mini, max_area=maxi)
     regions, _ = mser.detectRegions(gray)
-    return regions
-
-def transformada_Hough( gray):
-    # Aplica un desenfoque gaussiano para reducir el ruido
-    blurred = cv2.GaussianBlur(gray, (9, 9), 2)
-
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1, minDist=50,
-                               param1=200, param2=30, minRadius=10, maxRadius=100)
-    regions = []
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        for (x, y, r) in circles:
-            # Calcula las coordenadas del cuadrado
-            x1 = x - r
-            y1 = y - r
-            w = h = 2 * r
-            regions.append([x1, y1, w, h])
     return regions
 
 def expand_detected_regions_p1(regions, gray_image, original_image, expand_factor=1.2):
